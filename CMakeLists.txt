@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   rosbag
 )
 
-find_package(PCL REQUIRED QUIET)
+find_package(PCL REQUIRED QUIET COMPONENTS common kdtree filters)
 find_package(GTSAM REQUIRED QUIET)
 
 catkin_package(
@@ -68,7 +68,6 @@ target_link_libraries(measurment_model
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
-
 
 add_library(mcl
   src/mcl.cpp
