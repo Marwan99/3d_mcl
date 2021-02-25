@@ -3,13 +3,15 @@
 #include <mcl/mcl.hpp>
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <nav_msgs/Odometry.h>
 
-#define NUM_PARTICLES 500
+#define NUM_PARTICLES 100
 
 MCL::MCL(ros::NodeHandle &nh): motion_model(nh), measurement_model(nh)
 {
     nh_ = nh;
     vis_pub_  = nh.advertise<visualization_msgs::MarkerArray>("/particles", 10, true);
+    pose_pub_ = nh.advertise<nav_msgs::Odometry>("/mcl_odom", 1, true);
 
     // Initializing particles
     for(int i = 0; i < NUM_PARTICLES; i++)
@@ -27,23 +29,28 @@ void MCL::filter()
 {
     if(measurement_model.scan_available && motion_model.odom_initialized)
     {
+        // ros::Time time = ros::Time::now();
         measurement_model.scan_available = false;
         ROS_INFO("Filtering*************************************");
 
+        // ros::Time motion_time = ros::Time::now();
         motion_model.update_pose(particles);
+        // ROS_INFO("Motion time: %f", (ros::Time::now() - motion_time).toSec());
 
         if(!motion_model.moved)
             return;
 
+        // ros::Time measurement_time = ros::Time::now();
         measurement_model.calculate_weights(particles);
+        // ROS_INFO("Measurement time: %f", (ros::Time::now() - measurement_time).toSec());
 
-        ROS_INFO("Normalizing weights");
-        normalise_weights();
         ROS_INFO("Resampling");
         low_var_respampling();
         publish_markers();
+        publish_estimated_pose();
 
         // motion_model.reset_pre_integration();
+        // ROS_INFO("Total time: %f", (ros::Time::now() - time).toSec());
         ROS_INFO("Iteration complete-----------------------------");
     }
 }
@@ -84,8 +91,36 @@ void MCL::publish_markers()
     vis_pub_.publish(markers_list);
 }
 
+void MCL::publish_estimated_pose()
+{
+    normalise_weights();
+    nav_msgs::Odometry odom_msg;
+
+    odom_msg.header.frame_id = "odom";
+    
+    odom_msg.pose.pose.position.x = 0;
+    odom_msg.pose.pose.position.y = 0;
+    odom_msg.pose.pose.position.z = 0;
+
+    double estimated_yaw = 0;
+
+    for(auto particle : particles)
+    {
+        odom_msg.pose.pose.position.x += particle.x * particle.weight;
+        odom_msg.pose.pose.position.y += particle.y * particle.weight;
+        estimated_yaw += particle.yaw * particle.weight;
+    }
+
+    tf2::Quaternion quaternion;
+    quaternion.setRPY(0, 0, estimated_yaw);
+    tf2::convert(quaternion, odom_msg.pose.pose.orientation);
+
+    pose_pub_.publish(odom_msg);
+}
+
 void MCL::low_var_respampling()
 {
+    normalise_weights();
     // std::vector<pose> sampled_particles;
     
     // std::random_device device;	
