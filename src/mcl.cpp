@@ -3,7 +3,6 @@
 #include <mcl/mcl.hpp>
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <nav_msgs/Odometry.h>
 
 #define NUM_PARTICLES 100
 
@@ -33,7 +32,6 @@ void MCL::filter()
         measurement_model.scan_available = false;
         ROS_INFO("Filtering*************************************");
 
-        // ros::Time motion_time = ros::Time::now();
         motion_model.update_pose(particles);
         // ROS_INFO("Motion time: %f", (ros::Time::now() - motion_time).toSec());
 
@@ -49,7 +47,7 @@ void MCL::filter()
         publish_markers();
         publish_estimated_pose();
 
-        // motion_model.reset_pre_integration();
+        motion_model.reset_pre_integration(cur_estimate);
         // ROS_INFO("Total time: %f", (ros::Time::now() - time).toSec());
         ROS_INFO("Iteration complete-----------------------------");
     }
@@ -94,28 +92,27 @@ void MCL::publish_markers()
 void MCL::publish_estimated_pose()
 {
     normalise_weights();
-    nav_msgs::Odometry odom_msg;
 
-    odom_msg.header.frame_id = "odom";
+    cur_estimate.header.frame_id = "odom";
     
-    odom_msg.pose.pose.position.x = 0;
-    odom_msg.pose.pose.position.y = 0;
-    odom_msg.pose.pose.position.z = 0;
+    cur_estimate.pose.pose.position.x = 0;
+    cur_estimate.pose.pose.position.y = 0;
+    cur_estimate.pose.pose.position.z = 0;
 
     double estimated_yaw = 0;
 
     for(auto particle : particles)
     {
-        odom_msg.pose.pose.position.x += particle.x * particle.weight;
-        odom_msg.pose.pose.position.y += particle.y * particle.weight;
+        cur_estimate.pose.pose.position.x += particle.x * particle.weight;
+        cur_estimate.pose.pose.position.y += particle.y * particle.weight;
         estimated_yaw += particle.yaw * particle.weight;
     }
 
     tf2::Quaternion quaternion;
     quaternion.setRPY(0, 0, estimated_yaw);
-    tf2::convert(quaternion, odom_msg.pose.pose.orientation);
+    tf2::convert(quaternion, cur_estimate.pose.pose.orientation);
 
-    pose_pub_.publish(odom_msg);
+    pose_pub_.publish(cur_estimate);
 }
 
 void MCL::low_var_respampling()

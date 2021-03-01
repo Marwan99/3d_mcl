@@ -1,19 +1,19 @@
 <launch>
-    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find mcl)/custom_rosconsole.conf"/>
-    
-    <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
+     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find mcl)/custom_rosconsole.conf"/>
 
-    <!-- /media/marwan/external_drive/fyp/post_ouster_pkg_update/teleop/random_walk_2021-01-27-00-06-43.bag -->
-    <node pkg="rosbag" type="play" name="player" args="
+     <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
+
+     <!-- /media/marwan/external_drive/fyp/post_ouster_pkg_update/teleop/random_walk_2021-01-27-00-06-43.bag -->
+     <node pkg="rosbag" type="play" name="player" args="
          /media/marwan/external_drive/fyp/post_ouster_pkg_update/localization/localization_0_2021-02-13-16-06-39.bag
-         --topic /os_cloud_node/points /encoder_odom
-         -r 1
+         --topic /os_cloud_node/points /imu/data
+         -r 1.0
          -s 25"/>
 
-    <node pkg="rosbag" type="play" name="map_player" args="
+     <node pkg="rosbag" type="play" name="map_player" args="
          /home/marwan/lol.bag --loop"/>
 
-    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 map odom 100" />
+     <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 map odom 100" />
 
-    <node pkg="rviz" type="rviz" name="mcl_rviz" args="-d $(find mcl)/rviz/rviz.rviz" />
+     <node pkg="rviz" type="rviz" name="mcl_rviz" args="-d $(find mcl)/rviz/rviz.rviz" />
 </launch>

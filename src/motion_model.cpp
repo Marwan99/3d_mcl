@@ -32,7 +32,12 @@ MotionModel::MotionModel(ros::NodeHandle& nh)
   imu_integrator = new gtsam::PreintegratedImuMeasurements(p, prior_imu_bias);
   imu_bias = gtsam::imuBias::ConstantBias();
 
-  reset_pre_integration();
+  imu_integrator->resetIntegrationAndSetBias(imu_bias);
+  prev_state_odom_ = gtsam::NavState(gtsam::Pose3().identity(), gtsam::Velocity3(0, 0, 0));
+
+  inc_pose_.x = 0;
+  inc_pose_.y = 0;
+  inc_pose_.yaw = 0;
 
   odom_initialized = false;
 
@@ -54,6 +59,7 @@ void MotionModel::odom_callback(const nav_msgs::Odometry::ConstPtr& odom_msg_ptr
 void MotionModel::imu_callback(const sensor_msgs::Imu::ConstPtr& imu_raw)
 {
   ROS_DEBUG("IMU message received.");
+  odom_initialized = true;
   sensor_msgs::Imu imu_msg = *imu_raw;
 
   double dt = imu_msg.header.stamp.toSec() - prev_time_;
@@ -68,19 +74,34 @@ void MotionModel::imu_callback(const sensor_msgs::Imu::ConstPtr& imu_raw)
 
   gtsam::Pose3 imu_pose = gtsam::Pose3(current_state.quaternion(), current_state.position());
 
-  inc_pose_.x = imu_pose.translation().x();
-  inc_pose_.y = imu_pose.translation().y();
-  inc_pose_.yaw = imu_pose.rotation().rpy().z();
+  inc_pose_.x += imu_pose.translation().x();
+  inc_pose_.y += imu_pose.translation().y();
+  inc_pose_.yaw += imu_pose.rotation().rpy().z(); 
 }
 
 void MotionModel::update_pose(std::vector<pose>& particles)
 {
   ROS_DEBUG("Updating pose");
 
-  double a_1 = 0.02;
-  double a_2 = 0.02;
-  double a_3 = 0.2;
-  double a_4 = 0.2;
+  /*---------*/
+  latest_odom_= prev_odom_;
+  latest_odom_.position.x += inc_pose_.x;
+  latest_odom_.position.y += inc_pose_.y;
+
+  tf2::Quaternion delta_quat;
+  delta_quat.setRPY(0, 0, inc_pose_.yaw);
+
+  tf2::Quaternion global_quat;
+  tf2::fromMsg(prev_odom_.orientation, global_quat);
+
+  latest_odom_.orientation = tf2::toMsg(delta_quat*global_quat);
+
+  /*---------*/
+
+  double a_1 = 0.08;
+  double a_2 = 0.08;
+  double a_3 = 0.08;
+  double a_4 = 0.08;
 
   double latest_yaw = tf2::getYaw(latest_odom_.orientation);
   double prev_yaw = tf2::getYaw(prev_odom_.orientation);
@@ -137,13 +158,16 @@ void MotionModel::update_pose(std::vector<pose>& particles)
   prev_odom_ = latest_odom_;
 }
 
-void MotionModel::reset_pre_integration()
+void MotionModel::reset_pre_integration(const nav_msgs::Odometry & latest_estimate)
 {
   imu_integrator->resetIntegrationAndSetBias(imu_bias);
   prev_state_odom_ = gtsam::NavState(gtsam::Pose3().identity(), gtsam::Velocity3(0, 0, 0));
 
   inc_pose_.x = 0;
   inc_pose_.y = 0;
+  inc_pose_.yaw = 0;
+
+  prev_odom_ = latest_estimate.pose.pose;
 }
 
 double MotionModel::normalize(double angle)

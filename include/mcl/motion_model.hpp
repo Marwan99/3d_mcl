@@ -40,7 +40,7 @@ public:
   void imu_callback(const sensor_msgs::Imu::ConstPtr &imu_raw);
   void odom_callback(const nav_msgs::Odometry::ConstPtr &odom_msg_ptr);
   void update_pose(std::vector<pose> &particle);
-  void reset_pre_integration();
+  void reset_pre_integration(const nav_msgs::Odometry & latest_estimate);
 
   double normalize(double value);
   double angle_diff(double a, double b);  
