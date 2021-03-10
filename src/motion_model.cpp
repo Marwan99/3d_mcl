@@ -46,8 +46,14 @@ MotionModel::MotionModel(ros::NodeHandle& nh)
 
 void MotionModel::odom_callback(const nav_msgs::Odometry::ConstPtr& odom_msg_ptr)
 {
-  odom_initialized = true;
   ROS_DEBUG("Odom message received.");
+
+  if(!odom_initialized)
+  {
+    prev_odom_ = odom_msg_ptr->pose.pose;
+    odom_initialized = true;
+  }
+
   latest_odom_ = odom_msg_ptr->pose.pose;
 }
 
