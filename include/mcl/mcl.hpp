@@ -14,6 +14,7 @@ class MCL
 {
   ros::NodeHandle nh_;
   ros::Publisher vis_pub_;
+  ros::Publisher pose_pub_;
 
   std::vector<pose> particles;
 
@@ -27,4 +28,5 @@ public:
   void publish_markers();
   void low_var_respampling();
   void normalise_weights();
+  void publish_estimated_pose();
 };
