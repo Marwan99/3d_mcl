@@ -15,18 +15,22 @@ MotionModel::MotionModel(ros::NodeHandle& nh)
 {
   nh_ = nh;
 
-  imu_subscriber_ = nh_.subscribe<sensor_msgs::Imu>("/imu/data", 20000, &MotionModel::imu_callback, this);
-  odom_subscriber_ = nh_.subscribe<nav_msgs::Odometry>("/encoder_odom", 1, &MotionModel::odom_callback, this);
+  imu_subscriber_ =
+      nh_.subscribe<sensor_msgs::Imu>("/imu/data", 20000, &MotionModel::imu_callback, this);
+  odom_subscriber_ =
+      nh_.subscribe<nav_msgs::Odometry>("/encoder_odom", 1, &MotionModel::odom_callback, this);
 
   prev_time_ = ros::Time().now().toSec();
 
-  boost::shared_ptr<gtsam::PreintegrationParams> p = gtsam::PreintegrationParams::MakeSharedU(9.80511);
-  p->accelerometerCovariance =
-      gtsam::Matrix33::Identity(3, 3) * pow(1.2154843674317246e-02, 2);  // acc white noise in continuous
-  p->gyroscopeCovariance =
-      gtsam::Matrix33::Identity(3, 3) * pow(2.5532119453813736e-03, 2);  // gyro white noise in continuous
+  boost::shared_ptr<gtsam::PreintegrationParams> p =
+      gtsam::PreintegrationParams::MakeSharedU(9.80511);
+  p->accelerometerCovariance = gtsam::Matrix33::Identity(3, 3) *
+                               pow(1.2154843674317246e-02, 2);  // acc white noise in continuous
+  p->gyroscopeCovariance = gtsam::Matrix33::Identity(3, 3) *
+                           pow(2.5532119453813736e-03, 2);  // gyro white noise in continuous
   p->integrationCovariance =
-      gtsam::Matrix33::Identity(3, 3) * pow(1e-4, 2);  // error committed in integrating position from velocities
+      gtsam::Matrix33::Identity(3, 3) *
+      pow(1e-4, 2);  // error committed in integrating position from velocities
 
   gtsam::imuBias::ConstantBias prior_imu_bias;
   imu_integrator = new gtsam::PreintegratedImuMeasurements(p, prior_imu_bias);
@@ -48,7 +52,7 @@ void MotionModel::odom_callback(const nav_msgs::Odometry::ConstPtr& odom_msg_ptr
 {
   ROS_DEBUG("Odom message received.");
 
-  if(!odom_initialized)
+  if (!odom_initialized)
   {
     prev_odom_ = odom_msg_ptr->pose.pose;
     odom_initialized = true;
@@ -67,8 +71,11 @@ void MotionModel::imu_callback(const sensor_msgs::Imu::ConstPtr& imu_raw)
   prev_time_ = imu_msg.header.stamp.toSec();
 
   imu_integrator->integrateMeasurement(
-      gtsam::Vector3(imu_msg.linear_acceleration.x, imu_msg.linear_acceleration.y, imu_msg.linear_acceleration.z),
-      gtsam::Vector3(imu_msg.angular_velocity.x, imu_msg.angular_velocity.y, imu_msg.angular_velocity.z), dt);
+      gtsam::Vector3(imu_msg.linear_acceleration.x, imu_msg.linear_acceleration.y,
+                     imu_msg.linear_acceleration.z),
+      gtsam::Vector3(imu_msg.angular_velocity.x, imu_msg.angular_velocity.y,
+                     imu_msg.angular_velocity.z),
+      dt);
 
   gtsam::NavState current_state = imu_integrator->predict(prev_state_odom_, imu_bias);
 
@@ -107,7 +114,8 @@ void MotionModel::update_pose(std::vector<pose>& particles)
     moved = true;
 
   double delta_rot_1_std = std::sqrt(a_1 * pow(delta_rot_1, 2) + a_2 * pow(delta_trans, 2));
-  double delta_trans_std = std::sqrt(a_3 * pow(delta_trans, 2) + a_4 * pow(delta_rot_1, 2) + a_4 * pow(delta_rot_2, 2));
+  double delta_trans_std =
+      std::sqrt(a_3 * pow(delta_trans, 2) + a_4 * pow(delta_rot_1, 2) + a_4 * pow(delta_rot_2, 2));
   double delta_rot_2_std = std::sqrt(a_1 * pow(delta_rot_2, 2) + a_2 * pow(delta_trans, 2));
 
   std::random_device device;

@@ -22,7 +22,7 @@ class MCL
   MeasurementModel measurement_model;
 
 public:
-  MCL(ros::NodeHandle &nh);
+  MCL(ros::NodeHandle& nh);
 
   void filter();
   void publish_markers();

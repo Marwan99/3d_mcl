@@ -9,9 +9,9 @@ struct pose
 
   pose()
   {
-    x=0;
-    y=0;
-    yaw=0;
+    x = 0;
+    y = 0;
+    yaw = 0;
   }
 
   pose(double x_pose, double y_pose, double theta)

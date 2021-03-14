@@ -13,7 +13,6 @@
 
 #include <mcl/pose.hpp>
 
-
 class MotionModel
 {
   ros::NodeHandle nh_;
@@ -23,7 +22,7 @@ class MotionModel
   geometry_msgs::Pose prev_odom_;
   geometry_msgs::Pose latest_odom_;
 
-  gtsam::PreintegratedImuMeasurements *imu_integrator;
+  gtsam::PreintegratedImuMeasurements* imu_integrator;
   gtsam::NavState prev_state_odom_;
   gtsam::imuBias::ConstantBias imu_bias;
 
@@ -37,11 +36,11 @@ public:
 
   MotionModel(ros::NodeHandle& nh);
 
-  void imu_callback(const sensor_msgs::Imu::ConstPtr &imu_raw);
-  void odom_callback(const nav_msgs::Odometry::ConstPtr &odom_msg_ptr);
-  void update_pose(std::vector<pose> &particle);
+  void imu_callback(const sensor_msgs::Imu::ConstPtr& imu_raw);
+  void odom_callback(const nav_msgs::Odometry::ConstPtr& odom_msg_ptr);
+  void update_pose(std::vector<pose>& particle);
   void reset_pre_integration();
 
   double normalize(double value);
-  double angle_diff(double a, double b);  
+  double angle_diff(double a, double b);
 };

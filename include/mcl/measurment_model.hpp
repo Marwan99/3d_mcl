@@ -15,7 +15,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/filters/filter.h>
 #include <pcl/filters/voxel_grid.h>
-#include <pcl/filters/crop_box.h> 
+#include <pcl/filters/crop_box.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/passthrough.h>
 
@@ -39,7 +39,7 @@ class MeasurementModel
 public:
   bool scan_available;
 
-  MeasurementModel(ros::NodeHandle &nh);
+  MeasurementModel(ros::NodeHandle& nh);
 
   void scan_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg_ptr);
   void map_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg_ptr);

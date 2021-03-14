@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <mcl/mcl.hpp>
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   ros::init(argc, argv, "home_made_mcl");
   ros::NodeHandle nh;
