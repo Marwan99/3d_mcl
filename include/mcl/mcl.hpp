@@ -5,6 +5,10 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2/LinearMath/Transform.h>
 
 #include <mcl/pose.hpp>
 #include <mcl/motion_model.hpp>
@@ -15,6 +19,13 @@ class MCL
   ros::NodeHandle nh_;
   ros::Publisher vis_pub_;
   ros::Publisher pose_pub_;
+
+  bool tf_initialized_;
+  tf2::Transform latest_tf_;
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
+  tf2_ros::TransformBroadcaster tf_broadcaseter_;
+  geometry_msgs::TransformStamped map_odom_tf_;
 
   std::vector<pose> particles;
 

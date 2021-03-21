@@ -38,6 +38,7 @@ class MeasurementModel
 
 public:
   bool scan_available;
+  ros::Time scan_time;
 
   MeasurementModel(ros::NodeHandle& nh);
 

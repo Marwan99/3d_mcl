@@ -32,6 +32,8 @@ void MeasurementModel::scan_callback(const sensor_msgs::PointCloud2ConstPtr& clo
   pass_filter_.setInputCloud(scan_cloud_);
   pass_filter_.filter(*scan_cloud_);
 
+  scan_time = cloud_msg_ptr->header.stamp;
+
   // down_size_filter_.setInputCloud(scan_cloud_);
   // down_size_filter_.filter(*scan_cloud_);
 

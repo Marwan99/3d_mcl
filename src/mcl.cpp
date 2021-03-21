@@ -2,12 +2,15 @@
 
 #include <mcl/mcl.hpp>
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/convert.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #define NUM_PARTICLES 100
 
-MCL::MCL(ros::NodeHandle& nh) : motion_model(nh), measurement_model(nh)
+MCL::MCL(ros::NodeHandle& nh) : tf_listener_(tf_buffer_), motion_model(nh), measurement_model(nh)
 {
   nh_ = nh;
   vis_pub_ = nh.advertise<visualization_msgs::MarkerArray>("/particles", 10, true);
@@ -17,9 +20,28 @@ MCL::MCL(ros::NodeHandle& nh) : motion_model(nh), measurement_model(nh)
   for (int i = 0; i < NUM_PARTICLES; i++)
     // particles.push_back(pose((double)std::rand() / RAND_MAX * 1.0 -0.5, (double)std::rand() /
     // RAND_MAX  * 1.0 - 0.5, (((double)std::rand() / (RAND_MAX))*6.24) - 3.14));
-    particles.push_back(pose((double)std::rand() / RAND_MAX * 1.0 - 0.5,
-                             (double)std::rand() / RAND_MAX * 1.0 - 0.5, 0));
+    particles.push_back(
+        pose((double)std::rand() / RAND_MAX * 1.0 - 0.5, (double)std::rand() / RAND_MAX * 1.0 - 0.5, 0));
   // particles.push_back(pose(0, 0, 0));
+
+  // TODO: Replace with proper initialization from rviz
+  // Initializing map->odom tf
+  // map_odom_tf_.header.stamp = ros::Time::now() + ros::Duration(3.0);
+  // map_odom_tf_.header.frame_id = "map";
+  // map_odom_tf_.child_frame_id = "odom";
+  // map_odom_tf_.transform.translation.x = 0;
+  // map_odom_tf_.transform.translation.y = 0;
+  // map_odom_tf_.transform.translation.z = 0;
+  // tf2::Quaternion q;
+  // q.setRPY(0, 0, 0);
+  // map_odom_tf_.transform.rotation.x = q.x();
+  // map_odom_tf_.transform.rotation.y = q.y();
+  // map_odom_tf_.transform.rotation.z = q.z();
+  // map_odom_tf_.transform.rotation.w = q.w();
+  // tf_broadcaseter_.sendTransform(map_odom_tf_);
+  
+  tf_initialized_ = false;
+  tf_buffer_.setUsingDedicatedThread(true);
 
   publish_markers();
 }
@@ -45,12 +67,17 @@ void MCL::filter()
 
     ROS_INFO("Resampling");
     low_var_respampling();
-    publish_markers();
     publish_estimated_pose();
+    publish_markers();
 
     // motion_model.reset_pre_integration();
     // ROS_INFO("Total time: %f", (ros::Time::now() - time).toSec());
     ROS_INFO("Iteration complete-----------------------------");
+  }
+  else if(tf_initialized_)  // broadcast previous tf, so that it does not expire.
+  {
+    map_odom_tf_.header.stamp = measurement_model.scan_time + ros::Duration(0.1);
+    tf_broadcaseter_.sendTransform(map_odom_tf_);
   }
 }
 
@@ -60,7 +87,7 @@ void MCL::publish_markers()
   visualization_msgs::MarkerArray markers_list;
   tf2::Quaternion quaternion;
 
-  temp_marker.header.frame_id = "odom";
+  temp_marker.header.frame_id = "map";
   temp_marker.header.stamp = ros::Time();
   temp_marker.ns = "particles_space";
   temp_marker.type = visualization_msgs::Marker::ARROW;
@@ -95,7 +122,7 @@ void MCL::publish_estimated_pose()
   normalise_weights();
   nav_msgs::Odometry odom_msg;
 
-  odom_msg.header.frame_id = "odom";
+  odom_msg.header.frame_id = "map";
 
   odom_msg.pose.pose.position.x = 0;
   odom_msg.pose.pose.position.y = 0;
@@ -115,6 +142,41 @@ void MCL::publish_estimated_pose()
   tf2::convert(quaternion, odom_msg.pose.pose.orientation);
 
   pose_pub_.publish(odom_msg);
+
+  // Publish map->odom tf
+  // Adapted from AMCL
+  geometry_msgs::PoseStamped odom_to_map;
+  try
+  {
+    tf2::Transform tmp_tf(quaternion, tf2::Vector3(odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y,
+                                                   odom_msg.pose.pose.position.z));
+
+    geometry_msgs::PoseStamped tmp_tf_stamped;
+    tmp_tf_stamped.header.frame_id = "base_link";
+    tmp_tf_stamped.header.stamp = measurement_model.scan_time;
+    tf2::toMsg(tmp_tf.inverse(), tmp_tf_stamped.pose);
+
+    tf_buffer_.transform(tmp_tf_stamped, odom_to_map, "odom");
+  }
+  catch (tf2::TransformException e)
+  {
+    ROS_WARN("Failed to subtract base to odom transform, %s", e.what());
+    return;
+  }
+
+  tf2::convert(odom_to_map.pose, latest_tf_);
+
+  // We want to send a transform that is good up until a
+  // tolerance time so that odom can be used
+  ros::Time transform_expiration = measurement_model.scan_time + ros::Duration(0.1);
+
+  map_odom_tf_.header.frame_id = "map";
+  map_odom_tf_.header.stamp = transform_expiration;
+  map_odom_tf_.child_frame_id = "odom";
+  tf2::convert(latest_tf_.inverse(), map_odom_tf_.transform);
+
+  tf_broadcaseter_.sendTransform(map_odom_tf_);
+  tf_initialized_ = true;
 }
 
 void MCL::low_var_respampling()

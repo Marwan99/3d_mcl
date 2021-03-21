@@ -1,19 +1,30 @@
 <launch>
-    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find mcl)/custom_rosconsole.conf"/>
-    
-    <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
+     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find mcl)/custom_rosconsole.conf"/>
 
-    <!-- /media/marwan/external_drive/fyp/post_ouster_pkg_update/teleop/random_walk_2021-01-27-00-06-43.bag -->
-    <node pkg="rosbag" type="play" name="player" args="
-         /media/marwan/external_drive/fyp/post_ouster_pkg_update/localization/localization_0_2021-02-13-16-06-39.bag
+     <param name="/use_sim_time" value="true"/>
+
+     <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
+
+     <!-- Publish sensors -->
+     <node pkg="rosbag" type="play" name="player" args="
+         /media/marwan/external_drive/IROS/wednesday/parking_lot_repeat_stroll_0_2021-03-03-16-40-15.bag
          --topic /os_cloud_node/points /encoder_odom
          -r 1
-         -s 25"/>
+         -s 0
+         --clock"/>
 
-    <node pkg="rosbag" type="play" name="map_player" args="
-         /home/marwan/lol.bag --loop"/>
+     <!-- Publish map to use for localization and ground truth trajectory for visualization  -->
+     <node pkg="rosbag" type="play" name="map_player" args="
+         /media/marwan/external_drive/IROS/wednesday/maps/parking_lot_repeat_stroll_0_2021-03-03-16-40-15.bag --loop"/>
 
-    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 map odom 100" />
+     <!-- Publish odom->base_link tf from odom msg -->
+     <node name="message_to_tf" pkg="message_to_tf" type="message_to_tf" output="screen">
+          <param name="frame_id" type="string" value="odom" />
+          <param name="child_frame_id" type="string" value="base_link" />
+          <param name="footprint_frame_id" type="string" value="base_link" />
+          <param name="stabilized_frame_id" type="string" value="base_link" />
+          <param name="odometry_topic" type="string" value="/encoder_odom" />
+     </node>
 
-    <node pkg="rviz" type="rviz" name="mcl_rviz" args="-d $(find mcl)/rviz/rviz.rviz" />
+     <node pkg="rviz" type="rviz" name="mcl_rviz" args="-d $(find mcl)/rviz/rviz.rviz" />
 </launch>
