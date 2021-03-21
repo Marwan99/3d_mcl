@@ -21,7 +21,6 @@ class MCL
   ros::Publisher pose_pub_;
 
   bool tf_initialized_;
-  tf2::Transform latest_tf_;
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
   tf2_ros::TransformBroadcaster tf_broadcaseter_;
@@ -31,6 +30,9 @@ class MCL
 
   MotionModel motion_model;
   MeasurementModel measurement_model;
+  
+  // parameters
+  bool pub_tf_;
 
 public:
   MCL(ros::NodeHandle& nh);
