@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.1)
 project(mcl)
 
 set(CMAKE_BUILD_TYPE "Release")
@@ -7,6 +7,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -pthread")
 
 find_package(catkin REQUIRED COMPONENTS
   tf2
+  tf2_ros
+  tf2_msgs
   roscpp
   # pcl library
   pcl_conversions
@@ -19,11 +21,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PCL REQUIRED QUIET COMPONENTS common kdtree filters)
-find_package(GTSAM REQUIRED QUIET)
 
 catkin_package(
   INCLUDE_DIRS include
-  DEPENDS PCL GTSAM
+  DEPENDS PCL
 
   # CATKIN_DEPENDS
   # std_msgs
@@ -37,14 +38,12 @@ include_directories(
 	include
 	${catkin_INCLUDE_DIRS}
 	${PCL_INCLUDE_DIRS}
-	${GTSAM_INCLUDE_DIR}
 )
 
 # link directories
 link_directories(
 	include
 	${PCL_LIBRARY_DIRS}
-  ${GTSAM_LIBRARY_DIRS}
 )
 
 ###########
