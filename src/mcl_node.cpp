@@ -6,7 +6,10 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "home_made_mcl");
   ros::NodeHandle nh;
 
-  // ros::Rate loop_rate(1000);
+  double frequency;
+  nh.param<double>("frequency", frequency, 20.0);
+
+  ros::Rate loop_rate(frequency);
 
   MCL mcl(nh);
 
@@ -14,7 +17,7 @@ int main(int argc, char** argv)
   {
     mcl.filter();
     ros::spinOnce();
-    // loop_rate.sleep();
+    loop_rate.sleep();
   }
 
   return 0;
