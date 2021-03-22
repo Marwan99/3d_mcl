@@ -123,6 +123,26 @@ void MCL::publish_estimated_pose()
     estimated_yaw += particle.yaw * particle.weight;
   }
 
+  // Calculate odometry covariance
+  double cov_x = 0, cov_y = 0, cov_yaw = 0;
+  for (auto particle : particles)
+  {
+    cov_x += abs(particle.x - odom_msg.pose.pose.position.x);
+    cov_y += abs(particle.y - odom_msg.pose.pose.position.y);
+    cov_yaw += abs(particle.yaw - estimated_yaw);
+  }
+
+  cov_x /= particles.size();
+  cov_y /= particles.size();
+  cov_yaw /= particles.size();
+
+  odom_msg.pose.covariance = { cov_x, 0,     0, 0, 0, 0,          // NOLINT
+                               0,     cov_y, 0, 0, 0, 0,          // NOLINT
+                               0,     0,     0, 0, 0, 0,          // NOLINT
+                               0,     0,     0, 0, 0, 0,          // NOLINT
+                               0,     0,     0, 0, 0, 0,          // NOLINT
+                               0,     0,     0, 0, 0, cov_yaw };  // NOLINT
+
   tf2::Quaternion quaternion;
   quaternion.setRPY(0, 0, estimated_yaw);
   tf2::convert(quaternion, odom_msg.pose.pose.orientation);
