@@ -12,6 +12,7 @@ MeasurementModel::MeasurementModel(ros::NodeHandle& nh)
 
   tf_scan_publisher_ = nh_.advertise<sensor_msgs::PointCloud2>("/tf_scan", 1);
 
+  map_availble_ = false;
   scan_available = false;
 
   scan_cloud_.reset(new pcl::PointCloud<PointT>());
@@ -27,6 +28,10 @@ MeasurementModel::MeasurementModel(ros::NodeHandle& nh)
 void MeasurementModel::scan_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg_ptr)
 {
   ROS_DEBUG("scan received");
+
+  if(!map_availble_)
+    return;
+
   pcl::fromROSMsg(*cloud_msg_ptr, *scan_cloud_);
 
   pass_filter_.setInputCloud(scan_cloud_);
@@ -51,6 +56,7 @@ void MeasurementModel::map_callback(const sensor_msgs::PointCloud2ConstPtr& clou
   kd_tree_->setInputCloud(map_cloud_);
 
   map_subscriber_.shutdown();
+  map_availble_ = true;
 }
 
 void MeasurementModel::calculate_weights(std::vector<pose>& particles)

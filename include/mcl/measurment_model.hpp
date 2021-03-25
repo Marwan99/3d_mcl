@@ -36,6 +36,8 @@ class MeasurementModel
   pcl::KdTreeFLANN<PointT>::Ptr kd_tree_;
   pcl::PassThrough<PointT> pass_filter_;
 
+  bool map_availble_;
+
 public:
   bool scan_available;
   ros::Time scan_time;
