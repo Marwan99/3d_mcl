@@ -3,7 +3,9 @@
 
      <param name="/use_sim_time" value="true"/>
 
-     <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
+    <param name="/mcl/frequency" type="double" value="25.0" />
+    <param name="/mcl/publish_tf" type="bool" value="true" />
+    <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
 
      <!-- Publish sensors -->
      <node pkg="rosbag" type="play" name="player" args="

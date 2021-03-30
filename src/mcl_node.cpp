@@ -7,7 +7,7 @@ int main(int argc, char** argv)
   ros::NodeHandle nh;
 
   double frequency;
-  nh.param<double>("frequency", frequency, 20.0);
+  nh.param<double>("/mcl/frequency", frequency, 20.0);
 
   ros::Rate loop_rate(frequency);
 

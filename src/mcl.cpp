@@ -24,7 +24,7 @@ MCL::MCL(ros::NodeHandle& nh) : tf_listener_(tf_buffer_), motion_model(nh), meas
         pose((double)std::rand() / RAND_MAX * 1.0 - 0.5, (double)std::rand() / RAND_MAX * 1.0 - 0.5, 0));
   // particles.push_back(pose(0, 0, 0));
  
-  nh.param<bool>("publish_tf", pub_tf_, true);
+  nh.param<bool>("/mcl/publish_tf", pub_tf_, true);
 
   tf_initialized_ = false;
   tf_buffer_.setUsingDedicatedThread(true);
@@ -60,7 +60,7 @@ void MCL::filter()
     // ROS_INFO("Total time: %f", (ros::Time::now() - time).toSec());
     ROS_INFO("Iteration complete-----------------------------");
   }
-  else if(tf_initialized_)  // broadcast previous tf, so that it does not expire.
+  else if(tf_initialized_ && pub_tf_)  // broadcast previous tf, so that it does not expire.
   {
     map_odom_tf_.header.stamp = measurement_model.scan_time + ros::Duration(0.1);
     tf_broadcaseter_.sendTransform(map_odom_tf_);
