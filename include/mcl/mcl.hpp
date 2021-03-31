@@ -4,6 +4,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -19,6 +20,13 @@ class MCL
   ros::NodeHandle nh_;
   ros::Publisher vis_pub_;
   ros::Publisher pose_pub_;
+  ros::Subscriber init_pose_sub_;
+
+  bool run_on_start_;
+  std::vector<pose> init_particles_;
+  double init_x_;
+  double init_y_;
+  double init_yaw_;
 
   bool tf_initialized_;
   tf2_ros::Buffer tf_buffer_;
@@ -42,4 +50,5 @@ public:
   void low_var_respampling();
   void normalise_weights();
   void publish_estimated_pose();
+  void init_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& pose_msg_ptr);
 };

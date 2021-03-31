@@ -6,6 +6,7 @@
 #include <nav_msgs/Odometry.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/convert.h>
+#include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #define NUM_PARTICLES 100
@@ -15,16 +16,20 @@ MCL::MCL(ros::NodeHandle& nh) : tf_listener_(tf_buffer_), motion_model(nh), meas
   nh_ = nh;
   vis_pub_ = nh.advertise<visualization_msgs::MarkerArray>("/particles", 10, true);
   pose_pub_ = nh.advertise<nav_msgs::Odometry>("/mcl_odom", 1, true);
+  init_pose_sub_ =
+      nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, &MCL::init_pose_callback, this);
+
+  nh.param<bool>("/mcl/publish_tf", pub_tf_, true);
+  nh.param<bool>("/mcl/run_on_start", run_on_start_, true);  // If not set, wait for /initalpose.
+  nh.param<double>("/mcl/init_x", init_x_, 0.0);
+  nh.param<double>("/mcl/init_y", init_y_, 0.0);
+  nh.param<double>("/mcl/init_yaw", init_yaw_, 0.0);
 
   // Initializing particles
   for (int i = 0; i < NUM_PARTICLES; i++)
-    // particles.push_back(pose((double)std::rand() / RAND_MAX * 1.0 -0.5, (double)std::rand() /
-    // RAND_MAX  * 1.0 - 0.5, (((double)std::rand() / (RAND_MAX))*6.24) - 3.14));
-    particles.push_back(
-        pose((double)std::rand() / RAND_MAX * 1.0 - 0.5, (double)std::rand() / RAND_MAX * 1.0 - 0.5, 0));
-  // particles.push_back(pose(0, 0, 0));
- 
-  nh.param<bool>("/mcl/publish_tf", pub_tf_, true);
+    particles.push_back(pose((double)std::rand() / RAND_MAX * 1.0 - 0.5 + init_x_,
+                             (double)std::rand() / RAND_MAX * 1.0 - 0.5 + init_y_,
+                             (double)std::rand() / RAND_MAX * 1.57 - 0.875 + init_yaw_));
 
   tf_initialized_ = false;
   tf_buffer_.setUsingDedicatedThread(true);
@@ -32,8 +37,30 @@ MCL::MCL(ros::NodeHandle& nh) : tf_listener_(tf_buffer_), motion_model(nh), meas
   publish_markers();
 }
 
+void MCL::init_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& pose_msg_ptr)
+{
+  run_on_start_ = true;
+
+  for (int i = 0; i < NUM_PARTICLES; i++)
+    init_particles_.push_back(pose(pose_msg_ptr->pose.pose.position.x * (double)std::rand() / RAND_MAX * 1.0 - 0.5,
+                                   pose_msg_ptr->pose.pose.position.y * (double)std::rand() / RAND_MAX * 1.0 - 0.5,
+                                   tf2::getYaw(pose_msg_ptr->pose.pose.orientation)));
+}
+
 void MCL::filter()
 {
+  // if not run on start, wait for pose from /initalpose.
+  if (!run_on_start_)
+    return;
+
+  // If a new pose estimate is available, re-init the particle poses and reset weights.
+  if (init_particles_.size() == NUM_PARTICLES)
+  {
+    particles.clear();
+    particles = init_particles_;
+    init_particles_.clear();
+  }
+
   if (measurement_model.scan_available && motion_model.odom_initialized)
   {
     // ros::Time time = ros::Time::now();
@@ -60,7 +87,7 @@ void MCL::filter()
     // ROS_INFO("Total time: %f", (ros::Time::now() - time).toSec());
     ROS_INFO("Iteration complete-----------------------------");
   }
-  else if(tf_initialized_ && pub_tf_)  // broadcast previous tf, so that it does not expire.
+  else if (tf_initialized_ && pub_tf_)  // broadcast previous tf, so that it does not expire.
   {
     map_odom_tf_.header.stamp = measurement_model.scan_time + ros::Duration(0.1);
     tf_broadcaseter_.sendTransform(map_odom_tf_);
@@ -149,7 +176,7 @@ void MCL::publish_estimated_pose()
 
   pose_pub_.publish(odom_msg);
 
-  if(pub_tf_)
+  if (pub_tf_)
   {
     // Publish map->odom tf
     // Adapted from AMCL
@@ -157,7 +184,7 @@ void MCL::publish_estimated_pose()
     try
     {
       tf2::Transform odom_base_tf(quaternion, tf2::Vector3(odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y,
-                                                    odom_msg.pose.pose.position.z));
+                                                           odom_msg.pose.pose.position.z));
 
       geometry_msgs::PoseStamped base_odom_pose_msg;
       base_odom_pose_msg.header.frame_id = "base_link";
