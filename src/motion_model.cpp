@@ -20,6 +20,9 @@ MotionModel::MotionModel(ros::NodeHandle& nh)
   odom_subscriber_ =
       nh_.subscribe<nav_msgs::Odometry>("/encoder_odom", 1, &MotionModel::odom_callback, this);
 
+  nh.param<double>("/mcl/translation_threshold", trans_thresh_, 0.1);
+  nh.param<double>("/mcl/rotation_threshold", rot_thresh_, 0.35); // ~20 deg
+
   prev_time_ = ros::Time().now().toSec();
 
   boost::shared_ptr<gtsam::PreintegrationParams> p =
@@ -105,7 +108,7 @@ void MotionModel::update_pose(std::vector<pose>& particles)
   double delta_trans = std::hypot(delta_x, delta_y);
   double delta_rot_2 = angle_diff(angle_diff(latest_yaw, prev_yaw), delta_rot_1);
 
-  if (delta_trans < 0.1)
+  if (delta_trans < trans_thresh_ && normalize(delta_rot_1 + delta_rot_2) < rot_thresh_)
   {
     moved = false;
     return;

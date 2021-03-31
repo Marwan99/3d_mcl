@@ -29,6 +29,8 @@ class MotionModel
   pose inc_pose_;
 
   double prev_time_;
+  double trans_thresh_;
+  double rot_thresh_;
 
 public:
   bool odom_initialized;
