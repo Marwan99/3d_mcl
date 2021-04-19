@@ -1,32 +1,37 @@
 <launch>
-     <env name="ROSCONSOLE_CONFIG_FILE" value="$(find mcl)/custom_rosconsole.conf"/>
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find mcl)/custom_rosconsole.conf"/>
 
-     <param name="/use_sim_time" value="true"/>
+    <!-- Use simulation time for tf to work -->
+    <param name="/use_sim_time" value="true"/>
 
     <param name="/mcl/frequency" type="double" value="25.0" />
     <param name="/mcl/publish_tf" type="bool" value="true" />
+    <param name="/mcl/init_x" type="double" value="0.0" />
+    <param name="/mcl/init_y" type="double" value="0.0" />
+    <param name="/mcl/init_yaw" type="double" value="0.0" />
     <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
 
-     <!-- Publish sensors -->
-     <node pkg="rosbag" type="play" name="player" args="
+    <!-- Publish sensors -->
+    <node pkg="rosbag" type="play" name="sensors_player" args="
          /media/marwan/external_drive/IROS/wednesday/parking_lot_repeat_stroll_0_2021-03-03-16-40-15.bag
-         --topic /os_cloud_node/points /encoder_odom
-         -r 1
-         -s 0
-         --clock"/>
+         -r 1 -s 0 --clock --topic /os_cloud_node/points /encoder_odom"/>
 
-     <!-- Publish map to use for localization and ground truth trajectory for visualization  -->
-     <node pkg="rosbag" type="play" name="map_player" args="
-         /media/marwan/external_drive/IROS/wednesday/maps/parking_lot_repeat_stroll_0_2021-03-03-16-40-15.bag --loop"/>
+    <!-- Publish map to use for localization and ground truth trajectory for visualization -->
+    <node pkg="rosbag" type="play" name="map_player" args="
+         /media/marwan/external_drive/IROS/wednesday/maps/parking_lot_repeat_stroll_0_2021-03-03-16-40-15.bag
+         --loop"/>
 
-     <!-- Publish odom->base_link tf from odom msg -->
-     <node name="message_to_tf" pkg="message_to_tf" type="message_to_tf" output="screen">
-          <param name="frame_id" type="string" value="odom" />
-          <param name="child_frame_id" type="string" value="base_link" />
-          <param name="footprint_frame_id" type="string" value="base_link" />
-          <param name="stabilized_frame_id" type="string" value="base_link" />
-          <param name="odometry_topic" type="string" value="/encoder_odom" />
-     </node>
+    <!-- Publish odom->base_link tf from odom msg -->
+    <node name="message_to_tf" pkg="message_to_tf" type="message_to_tf" output="screen">
+        <param name="frame_id" type="string" value="odom" />
+        <param name="child_frame_id" type="string" value="base_link" />
+        <param name="footprint_frame_id" type="string" value="base_link" />
+        <param name="stabilized_frame_id" type="string" value="base_link" />
+        <param name="odometry_topic" type="string" value="/encoder_odom" />
+    </node>
 
-     <node pkg="rviz" type="rviz" name="mcl_rviz" args="-d $(find mcl)/rviz/rviz.rviz" />
+    <param name="robot_description" command="$(find xacro)/xacro $(find lio_sam)/urdf/jaguar.urdf --inorder" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true"/>
+
+    <node pkg="rviz" type="rviz" name="mcl_rviz" args="-d $(find mcl)/rviz/rviz.rviz" />
 </launch>
