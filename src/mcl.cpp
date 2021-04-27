@@ -132,7 +132,6 @@ void MCL::publish_markers()
 
 void MCL::publish_estimated_pose()
 {
-  normalise_weights();
   nav_msgs::Odometry odom_msg;
 
   odom_msg.header.frame_id = "map";
@@ -218,7 +217,9 @@ void MCL::publish_estimated_pose()
 
 void MCL::low_var_respampling()
 {
-  normalise_weights();
+  if(!normalise_weights())
+      return;
+
   // std::vector<pose> sampled_particles;
 
   // std::random_device device;
@@ -261,9 +262,12 @@ void MCL::low_var_respampling()
   }
 
   particles = x_t;
+
+  if(!normalise_weights())
+      return;
 }
 
-void MCL::normalise_weights()
+bool MCL::normalise_weights()
 {
   double sum = 0;
 
@@ -271,8 +275,13 @@ void MCL::normalise_weights()
     sum += particle.weight;
 
   if (sum == 0)
-    return;
+  {
+    ROS_WARN("Can't normalise particles, weights sum is zero.");
+    return false;
+  }
 
   for (auto& particle : particles)
     particle.weight /= sum;
+
+  return true;
 }

@@ -48,7 +48,7 @@ public:
   void filter();
   void publish_markers();
   void low_var_respampling();
-  void normalise_weights();
+  bool normalise_weights();
   void publish_estimated_pose();
   void init_pose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& pose_msg_ptr);
 };
