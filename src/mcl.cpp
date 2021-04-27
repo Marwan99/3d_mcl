@@ -18,12 +18,14 @@ MCL::MCL(ros::NodeHandle& nh) : tf_listener_(tf_buffer_), motion_model(nh), meas
   pose_pub_ = nh.advertise<nav_msgs::Odometry>("/mcl_odom", 1, true);
   init_pose_sub_ =
       nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, &MCL::init_pose_callback, this);
+  save_traj_serv_ = nh.advertiseService("mcl/save_trajectory", &MCL::save_trajectory_to_csv, this);
 
   nh.param<bool>("/mcl/publish_tf", pub_tf_, true);
   nh.param<bool>("/mcl/run_on_start", run_on_start_, true);  // If not set, wait for /initalpose.
   nh.param<double>("/mcl/init_x", init_x_, 0.0);
   nh.param<double>("/mcl/init_y", init_y_, 0.0);
   nh.param<double>("/mcl/init_yaw", init_yaw_, 0.0);
+  nh.param<std::string>("/mcl/trajectory_csv", trajectory_csv_, "");
 
   // Initializing particles
   for (int i = 0; i < NUM_PARTICLES; i++)
@@ -174,6 +176,7 @@ void MCL::publish_estimated_pose()
   tf2::convert(quaternion, odom_msg.pose.pose.orientation);
 
   pose_pub_.publish(odom_msg);
+  trajectory_.push_back(odom_msg);
 
   if (pub_tf_)
   {
@@ -232,7 +235,7 @@ void MCL::low_var_respampling()
 
   // for(int i = 0; i < NUM_PARTICLES; i++)
   // {
-  //     u = r + (i/NUM_PARTICLES);
+  //     u = r + ((double)i/NUM_PARTICLES);
   //     ROS_ERROR_STREAM(i << " " << u << " " << c << " " << particles[i].weight);
   //     while(u > c)
   //     {
@@ -283,5 +286,32 @@ bool MCL::normalise_weights()
   for (auto& particle : particles)
     particle.weight /= sum;
 
+  return true;
+}
+
+bool MCL::save_trajectory_to_csv(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
+{
+  ROS_INFO("Saving global trajectory to CSV...");
+
+  if (trajectory_csv_ == "")
+  {
+    ROS_ERROR("trajectory_csv parameter is not set.");
+    return false;
+  }
+
+  std::ofstream csv_file;
+
+  csv_file.open(trajectory_csv_);
+  csv_file << "#timestamp, tx, ty, tz, qx, qy, qz, qw\n";
+
+  for (auto pose : trajectory_)
+  {
+    csv_file << pose.header.stamp << ", " << pose.pose.pose.position.x << ", " << pose.pose.pose.position.y << ", "
+             << pose.pose.pose.position.z << ", " << pose.pose.pose.orientation.x << ", " << pose.pose.pose.orientation.y << ", "
+             << pose.pose.pose.orientation.z << ", " << pose.pose.pose.orientation.w << std::endl;
+  }
+
+  csv_file.close();
+  ROS_INFO("Trajectory saved.");
   return true;
 }

@@ -9,6 +9,7 @@
     <param name="/mcl/init_x" type="double" value="0.0" />
     <param name="/mcl/init_y" type="double" value="0.0" />
     <param name="/mcl/init_yaw" type="double" value="0.0" />
+    <param name="/mcl/trajectory_csv" type="string" value="/home/marwan/delme.csv" />
     <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
 
     <!-- Publish sensors -->
