@@ -50,12 +50,11 @@ void MeasurementModel::map_callback(const sensor_msgs::PointCloud2ConstPtr& clou
   ROS_DEBUG("map received");
   pcl::fromROSMsg(*cloud_msg_ptr, *map_cloud_);
 
-  pass_filter_.setInputCloud(map_cloud_);
-  pass_filter_.filter(*map_cloud_);
+  // pass_filter_.setInputCloud(map_cloud_);
+  // pass_filter_.filter(*map_cloud_);
 
   kd_tree_->setInputCloud(map_cloud_);
 
-  map_subscriber_.shutdown();
   map_availble_ = true;
 }
 
@@ -64,7 +63,7 @@ void MeasurementModel::calculate_weights(std::vector<pose>& particles)
   ROS_DEBUG("Updating particle weights");
 
   std::default_random_engine generator;
-  std::uniform_real_distribution<double> uni_dist(0.0, 0.1);
+  std::uniform_real_distribution<double> uni_dist(0.0, 0.5);
 
   for (auto & particle : particles)
   {
@@ -82,24 +81,17 @@ void MeasurementModel::calculate_weights(std::vector<pose>& particles)
     cloud_msg.header.stamp = ros::Time::now();
     tf_scan_publisher_.publish(cloud_msg);
 
-    // particle.weight = 1.0;
     double q = 1.0;
-    for (int i = 0; i < temp_cloud->size(); i+=500)
+    for (int i = 0; i < temp_cloud->size(); i+=100) // 250
     {
       PointT cur_point = temp_cloud->points[i];
 
       int k_found = kd_tree_->nearestKSearch(cur_point, 1, closest_point_ind, closest_point_sqr_dist);
       if (k_found > 0)
       {
-        if(sqrt(closest_point_sqr_dist[0]) > 5.0)
-        {
-          q = 0;
-          continue;  
-        }
+        double prob_dist = normal_dist((double)sqrt(closest_point_sqr_dist[0]), 1.5);
+        q *= 0.6*prob_dist + 0.5*uni_dist(generator) / 100.0;
       }
-
-      double prob_dist = normal_dist((double)sqrt(closest_point_sqr_dist[0]), 1.5);
-      q *= 0.9*prob_dist+ 0.05*uni_dist(generator) / 100.0;
     }
     particle.weight = q;
   }
