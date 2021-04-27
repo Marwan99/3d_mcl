@@ -153,21 +153,21 @@ void MCL::publish_estimated_pose()
   double cov_x = 0, cov_y = 0, cov_yaw = 0;
   for (auto particle : particles)
   {
-    cov_x += abs(particle.x - odom_msg.pose.pose.position.x);
-    cov_y += abs(particle.y - odom_msg.pose.pose.position.y);
-    cov_yaw += abs(particle.yaw - estimated_yaw);
+    cov_x += pow(particle.x - odom_msg.pose.pose.position.x, 2);
+    cov_y += pow(particle.y - odom_msg.pose.pose.position.y, 2);
+    cov_yaw += pow(particle.yaw - estimated_yaw, 2);
   }
 
   cov_x /= particles.size();
   cov_y /= particles.size();
   cov_yaw /= particles.size();
 
-  odom_msg.pose.covariance = { cov_x, 0,     0, 0, 0, 0,          // NOLINT
-                               0,     cov_y, 0, 0, 0, 0,          // NOLINT
-                               0,     0,     0, 0, 0, 0,          // NOLINT
-                               0,     0,     0, 0, 0, 0,          // NOLINT
-                               0,     0,     0, 0, 0, 0,          // NOLINT
-                               0,     0,     0, 0, 0, cov_yaw };  // NOLINT
+  odom_msg.pose.covariance = {cov_x, 0,     0, 0, 0, 0,          // NOLINT
+                              0,     cov_y, 0, 0, 0, 0,          // NOLINT
+                              0,     0,     0, 0, 0, 0,          // NOLINT
+                              0,     0,     0, 0, 0, 0,          // NOLINT
+                              0,     0,     0, 0, 0, 0,          // NOLINT
+                              0,     0,     0, 0, 0, cov_yaw };  // NOLINT
 
   tf2::Quaternion quaternion;
   quaternion.setRPY(0, 0, estimated_yaw);
