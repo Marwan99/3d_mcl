@@ -6,6 +6,9 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <mcl/pose.hpp>
 
+#include <octomap/octomap.h>
+#include <octomap_msgs/Octomap.h>
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/search/impl/search.hpp>
@@ -36,6 +39,8 @@ class MeasurementModel
   pcl::KdTreeFLANN<PointT>::Ptr kd_tree_;
   pcl::PassThrough<PointT> pass_filter_;
 
+  octomap::AbstractOcTree* octomap_tree_;
+
   bool map_availble_;
 
 public:
@@ -45,7 +50,8 @@ public:
   MeasurementModel(ros::NodeHandle& nh);
 
   void scan_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg_ptr);
-  void map_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg_ptr);
+  // void map_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg_ptr);
+  void map_callback(const octomap_msgs::OctomapConstPtr& ocotmap_msg_ptr);
   void calculate_weights(std::vector<pose>& particles);
 
   double normal_dist(double x, double std_dev);

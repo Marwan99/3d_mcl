@@ -18,6 +18,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
   rosbag
+  octomap_ros
+  octomap_msgs
 )
 
 find_package(PCL REQUIRED QUIET COMPONENTS common kdtree filters)

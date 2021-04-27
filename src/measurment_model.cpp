@@ -1,14 +1,17 @@
 #include <math.h>
 #include <random>
 #include <mcl/measurment_model.hpp>
+#include <octomap_msgs/conversions.h>
 
-MeasurementModel::MeasurementModel(ros::NodeHandle& nh)
+MeasurementModel::MeasurementModel(ros::NodeHandle& nh) : octomap_tree_(NULL)
 {
   nh_ = nh;
   scan_subscriber_ =
       nh_.subscribe<sensor_msgs::PointCloud2>("/os_cloud_node/points", 1, &MeasurementModel::scan_callback, this);
+  // map_subscriber_ =
+  //     nh_.subscribe<sensor_msgs::PointCloud2>("/lio_sam/mapping/map_global", 1, &MeasurementModel::map_callback, this);
   map_subscriber_ =
-      nh_.subscribe<sensor_msgs::PointCloud2>("/lio_sam/mapping/map_global", 1, &MeasurementModel::map_callback, this);
+      nh_.subscribe<octomap_msgs::Octomap>("/octomap_binary", 1, &MeasurementModel::map_callback, this);
 
   tf_scan_publisher_ = nh_.advertise<sensor_msgs::PointCloud2>("/tf_scan", 1);
 
@@ -45,15 +48,19 @@ void MeasurementModel::scan_callback(const sensor_msgs::PointCloud2ConstPtr& clo
   scan_available = true;
 }
 
-void MeasurementModel::map_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg_ptr)
+// void MeasurementModel::map_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg_ptr)
+void MeasurementModel::map_callback(const octomap_msgs::OctomapConstPtr& ocotmap_msg_ptr)
 {
   ROS_DEBUG("map received");
-  pcl::fromROSMsg(*cloud_msg_ptr, *map_cloud_);
+
+  octomap_tree_ = octomap_msgs::msgToMap(*ocotmap_msg_ptr);
+
+  // pcl::fromROSMsg(*cloud_msg_ptr, *map_cloud_);
 
   // pass_filter_.setInputCloud(map_cloud_);
   // pass_filter_.filter(*map_cloud_);
 
-  kd_tree_->setInputCloud(map_cloud_);
+  // kd_tree_->setInputCloud(map_cloud_);
 
   map_availble_ = true;
 }
@@ -65,6 +72,7 @@ void MeasurementModel::calculate_weights(std::vector<pose>& particles)
   std::default_random_engine generator;
   std::uniform_real_distribution<double> uni_dist(0.0, 0.5);
 
+  octomap::OcTree* tree = (octomap::OcTree*)octomap_tree_;
   for (auto & particle : particles)
   {
     PointCloudT::Ptr temp_cloud(new PointCloudT(*scan_cloud_));
@@ -81,17 +89,35 @@ void MeasurementModel::calculate_weights(std::vector<pose>& particles)
     cloud_msg.header.stamp = ros::Time::now();
     tf_scan_publisher_.publish(cloud_msg);
 
-    double q = 1.0;
+    octomap::point3d origin(particle.x, particle.y, 0);
+    octomap::point3d direction;
+    octomap::point3d ray_end;
+
+    double q = 1.0; 
+
     for (int i = 0; i < temp_cloud->size(); i+=100) // 250
     {
       PointT cur_point = temp_cloud->points[i];
 
-      int k_found = kd_tree_->nearestKSearch(cur_point, 1, closest_point_ind, closest_point_sqr_dist);
-      if (k_found > 0)
+      direction = octomap::point3d(cur_point.x, cur_point.y, cur_point.z);
+      // bool success = tree->castRay(origin, direction, ray_end);
+      std::vector<octomap::point3d> ray;
+      bool success = tree->computeRay(origin, direction, ray);
+      if (success)
       {
-        double prob_dist = normal_dist((double)sqrt(closest_point_sqr_dist[0]), 1.5);
-        q *= 0.6*prob_dist + 0.5*uni_dist(generator) / 100.0;
+        // double distance = direction.distance(ray_end);
+        double distance = direction.distance(*(ray.end()));
+
+        double prob_dist = normal_dist(distance, 5.5);
+        q *= 0.9*prob_dist + 0.05*uni_dist(generator) / 100.0;
       }
+
+      // int k_found = kd_tree_->nearestKSearch(cur_point, 1, closest_point_ind, closest_point_sqr_dist);
+      // if (k_found > 0)
+      // {
+      //   double prob_dist = normal_dist((double)sqrt(closest_point_sqr_dist[0]), 1.5);
+      //   q *= 0.6*prob_dist + 0.5*uni_dist(generator) / 100.0;
+      // }
     }
     particle.weight = q;
   }

@@ -34,4 +34,13 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true"/>
 
     <node pkg="rviz" type="rviz" name="mcl_rviz" args="-d $(find mcl)/rviz/rviz.rviz" />
+
+    <!-- <include file="$(find segmenters_lib)/launch/demo.launch" /> -->
+
+    <!-- args="/home/marwan/test.bt" -->
+    <node pkg="octomap_server" type="octomap_server_node" name="octomap_server" output="screen" args="/home/marwan/test.bt">
+        <param name="resolution" value="0.15" />
+        <param name="frame_id" type="string" value="map" />
+    </node>
+
 </launch>
