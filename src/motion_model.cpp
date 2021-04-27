@@ -93,8 +93,8 @@ void MotionModel::update_pose(std::vector<pose>& particles)
 {
   ROS_DEBUG("Updating pose");
 
-  double a_1 = 0.02;
-  double a_2 = 0.02;
+  double a_1 = 0.8;
+  double a_2 = 0.8;
   double a_3 = 0.2;
   double a_4 = 0.2;
 
