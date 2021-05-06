@@ -9,17 +9,17 @@
     <param name="/mcl/init_x" type="double" value="0.0" />
     <param name="/mcl/init_y" type="double" value="0.0" />
     <param name="/mcl/init_yaw" type="double" value="0.0" />
-    <param name="/mcl/trajectory_csv" type="string" value="/home/marwan/fyp/rpg_trajectory_evaluation/results/mcl/parking_lot_0/stamped_traj_estimate.txt" />
+    <param name="/mcl/trajectory_csv" type="string" value="/home/marwan/admall_ws/iros21_evaluation/day2night_exp/fyp/mcl_courtyard_teach/stamped_traj_estimate.txt" />
     <node pkg="mcl" type="mcl_node" name="mcl_node" output="screen"/>
 
     <!-- Publish sensors -->
     <node pkg="rosbag" type="play" name="sensors_player" args="
-         /media/marwan/external_drive/IROS/wednesday/parking_lot_repeat_stroll_0_2021-03-03-16-40-15.bag
+         /media/marwan/external_drive/IROS/thursday/courtyard_thurs_evening_teach_2021-03-04-21-37-13.bag
          -r 1 -s 0 --clock --topic /os_cloud_node/points /encoder_odom"/>
 
     <!-- Publish map to use for localization and ground truth trajectory for visualization -->
     <node pkg="rosbag" type="play" name="map_player" args="
-         /media/marwan/external_drive/IROS/wednesday/maps/parking_lot_repeat_stroll_0_2021-03-03-16-40-15.bag
+         /media/marwan/external_drive/IROS/thursday/maps/courtyard_thurs_evening_teach_2021-03-04-21-37-13.bag
          --loop"/>
 
     <!-- Publish odom->base_link tf from odom msg -->

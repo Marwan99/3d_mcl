@@ -15,8 +15,8 @@ MotionModel::MotionModel(ros::NodeHandle& nh)
 {
   nh_ = nh;
 
-  imu_subscriber_ =
-      nh_.subscribe<sensor_msgs::Imu>("/imu/data", 20000, &MotionModel::imu_callback, this);
+  // imu_subscriber_ =
+  //     nh_.subscribe<sensor_msgs::Imu>("/imu/data", 20000, &MotionModel::imu_callback, this);
   odom_subscriber_ =
       nh_.subscribe<nav_msgs::Odometry>("/encoder_odom", 1, &MotionModel::odom_callback, this);
 
@@ -54,6 +54,13 @@ MotionModel::MotionModel(ros::NodeHandle& nh)
 void MotionModel::odom_callback(const nav_msgs::Odometry::ConstPtr& odom_msg_ptr)
 {
   ROS_DEBUG("Odom message received.");
+
+  // latest_odom_ = odom_msg_ptr->pose.pose;
+  // if (!odom_initialized)
+  // {
+  //   prev_odom_ = odom_msg_ptr->pose.pose;
+  //   odom_initialized = true;
+  // }
 
   if (!odom_initialized)
   {

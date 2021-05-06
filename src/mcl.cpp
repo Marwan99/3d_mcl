@@ -29,13 +29,15 @@ MCL::MCL(ros::NodeHandle& nh) : tf_listener_(tf_buffer_), motion_model(nh), meas
 
   // Initializing particles
   for (int i = 0; i < NUM_PARTICLES; i++)
-    particles.push_back(pose((double)std::rand() / RAND_MAX * 1.0 - 0.5 + init_x_,
-                             (double)std::rand() / RAND_MAX * 1.0 - 0.5 + init_y_,
+    particles.push_back(pose((double)std::rand() / RAND_MAX * 3.0 - 1.5 + init_x_,
+                             (double)std::rand() / RAND_MAX * 3.0 - 1.5 + init_y_,
                              (double)std::rand() / RAND_MAX * 1.57 - 0.875 + init_yaw_));
 
   tf_initialized_ = false;
   tf_buffer_.setUsingDedicatedThread(true);
 
+  low_var_respampling();
+  publish_estimated_pose();
   publish_markers();
 }
 
@@ -137,6 +139,7 @@ void MCL::publish_estimated_pose()
   nav_msgs::Odometry odom_msg;
 
   odom_msg.header.frame_id = "map";
+  odom_msg.header.stamp = ros::Time::now();
 
   odom_msg.pose.pose.position.x = 0;
   odom_msg.pose.pose.position.y = 0;
@@ -236,7 +239,7 @@ void MCL::low_var_respampling()
   // for(int i = 0; i < NUM_PARTICLES; i++)
   // {
   //     u = r + ((double)i/NUM_PARTICLES);
-  //     ROS_ERROR_STREAM(i << " " << u << " " << c << " " << particles[i].weight);
+  //     ROS_ERROR_STREAM(i << ", " << u << ", " << c << ", " << particles[i].weight);
   //     while(u > c)
   //     {
   //         i++;
